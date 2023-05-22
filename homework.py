@@ -27,17 +27,19 @@ HOMEWORK_VERDICTS = {
 
 def send_message(bot, message):
     """Отправка сообщения в  чат."""
+    logging.info('Попытка отправить сообщение в чат')
     try:
         bot.send_message(TELEGRAM_CHAT_ID, message)
-        logging.debug('Отправка сообщения в чат')
+        logging.debug('Сообщение отправлено в чат')
     except Exception as error:
         logging.error(f'Не удалось отправить сообщение в telegram: {error}')
 
 
 def get_api_answer(timestamp):
     """Запрос к эндпоинту API-сервиса."""
-    payload = {'from_date': timestamp}
+    logging.debug('Попытка отправить запрос к эндопоинту API-сервиса')
     try:
+        payload = {'from_date': timestamp}
         response = requests.get(ENDPOINT, headers=HEADERS, params=payload)
         logging.debug('Запрос отправлен к эндпоинту API-сервиса')
     except ConnectionError:
@@ -47,7 +49,8 @@ def get_api_answer(timestamp):
         logging.error(error_message)
         send_message(error_message)
     if response.status_code != HTTPStatus.OK:
-        raise ReferenceError('Статус ответа API не 200')
+        raise ReferenceError(f'Неверный ответ сервера.'
+                             f'Ошибка: {response.status_code}')
     return response.json()
 
 
@@ -94,8 +97,8 @@ def parse_status(homework):
 
 def check_tokens():
     """Проверка наличия Токенов."""
-    if all([PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID]):
-        return True
+    tokens = [PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID]
+    return all(tokens)
 
 
 def main():
@@ -121,12 +124,11 @@ def main():
                     logging.info('Сообщение отправлено успешно')
                 else:
                     logging.debug('Статус не изменился')
-            time.sleep(RETRY_PERIOD)
-
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             logging.error(message)
             send_message(bot, message)
+        finally:
             time.sleep(RETRY_PERIOD)
 
 
@@ -137,3 +139,4 @@ if __name__ == '__main__':
         format='%(asctime)s, %(levelname)s, %(message)s'
     )
     main()
+    get_api_answer(4)
